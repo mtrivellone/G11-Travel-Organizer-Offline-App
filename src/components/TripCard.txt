@@ -1,0 +1,135 @@
+import React from 'react';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { Trip } from '../types/trip';
+
+interface TripCardProps {
+  trip: Trip;
+  onPress: () => void;
+  onDuplicate: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+export const TripCard: React.FC<TripCardProps> = ({
+  trip,
+  onPress,
+  onDuplicate,
+  onEdit,
+  onDelete,
+}) => {
+  return (
+    <View style={styles.card}>
+      <TouchableOpacity style={styles.cardContent} onPress={onPress}>
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.cardTitle}>{trip.titolo}</Text>
+          <View style={[styles.badge, styles[`badge_${trip.stato}` as keyof typeof styles]]}>
+            <Text style={styles.badgeText}>{trip.stato}</Text>
+          </View>
+        </View>
+        <Text style={styles.cardDestination}>📍 {trip.destinazione}</Text>
+        <Text style={styles.cardDates}>
+          📅 {trip.dataInizio} / {trip.dataFine}
+        </Text>
+        <Text style={styles.cardBudget}>Budget: €{trip.budget}</Text>
+      </TouchableOpacity>
+
+      <View style={styles.cardActions}>
+        <TouchableOpacity style={styles.actionButton} onPress={onDuplicate}>
+          <Text style={styles.actionButtonText}>📂 Duplica</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionButton} onPress={onEdit}>
+          <Text style={styles.actionButtonText}>✏️ Modifica</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.actionButton, styles.btnDelete]} onPress={onDelete}>
+          <Text style={[styles.actionButtonText, { color: '#ff4d4d' }]}>🗑️</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 15,
+    padding: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardContent: {
+    flex: 1,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a202c',
+    flex: 1,
+    marginRight: 10,
+  },
+  cardDestination: {
+    fontSize: 14,
+    color: '#4a5568',
+    marginBottom: 4,
+  },
+  cardDates: {
+    fontSize: 13,
+    color: '#718096',
+    marginBottom: 4,
+  },
+  cardBudget: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2d3748',
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  badge_futuro: {
+    backgroundColor: '#fef3c7',
+  },
+  'badge_in corso': {
+    backgroundColor: '#dcfce7',
+  },
+  badge_completato: {
+    backgroundColor: '#e2e8f0',
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1a202c',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    borderTopWidth: 1,
+    borderTopColor: '#edf2f7',
+    marginTop: 10,
+    paddingTop: 10,
+  },
+  actionButton: {
+    marginLeft: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  actionButtonText: {
+    fontSize: 13,
+    color: '#4a5568',
+    fontWeight: '500',
+  },
+  btnDelete: {
+    backgroundColor: '#ffebeb',
+    borderRadius: 6,
+  },
+});
