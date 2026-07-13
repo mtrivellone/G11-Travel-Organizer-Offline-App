@@ -1,3 +1,4 @@
+// src/screens/tabs/ItineraryTab.tsx
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { useItineraryStore } from '../../stores/itineraryStore';
@@ -19,9 +20,9 @@ export function ItineraryTab({ tripId }: { tripId: string }) {
   useEffect(() => {
     (async () => {
       await store.load();
-      if (trip) await store.ensureDaysForTrip(tripId, trip.start, trip.end);
+      if (trip) await store.syncDaysForTrip(tripId, trip.start, trip.end);
     })();
-  }, [trip?.id]);
+  }, [trip?.id, trip?.start, trip?.end]);
 
   const days = store.daysOf(tripId);
   useEffect(() => { if (!selectedDay && days.length) setSelectedDay(days[0].id); }, [days.length]);
@@ -31,6 +32,7 @@ export function ItineraryTab({ tripId }: { tripId: string }) {
 
   return (
     <View style={{ flex: 1 }}>
+      {/* riga giorni: altezza fissa, non deve mai restringersi */}
       <View style={s.dayRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
           {days.map((d) => (
@@ -55,6 +57,7 @@ export function ItineraryTab({ tripId }: { tripId: string }) {
         </View>
       )}
 
+      {/* lista attività: prende tutto lo spazio rimanente e scrolla al suo interno */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
         {activities.length === 0 ? <Text style={s.empty}>Nessuna attività per questo giorno</Text> :
           activities.map((a) => (

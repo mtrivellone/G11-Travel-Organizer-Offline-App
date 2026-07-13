@@ -2,10 +2,17 @@ import { create } from 'zustand';
 import { Day, Activity } from '../types/itinerary';
 import { loadJSON, saveJSON } from '../storage/storage';
 import { registerTripCleanup } from '../storage/cleanup';
-import { makeId } from '../utils/id';
+import { makeId } from '../utils/id'; // NUOVO
 
 const DAYS = 'to:days';
 const ACTS = 'to:activities';
+
+// chiave "YYYY-MM-DD" in ora locale: serve per confrontare i giorni per data solare,
+// ignorando eventuali differenze di orario/timestamp tra le stringhe ISO
+const dateKey = (iso: string): string => {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 const seedDays: Day[] = [
   { id: 't1d1', tripId: 't1', title: 'Arrivo a Tokyo', date: '2025-11-05', place: 'Tokyo', order: 1, notes: '' },
@@ -20,8 +27,8 @@ type State = {
   load: () => Promise<void>;
   daysOf: (tripId: string) => Day[];
   activitiesOf: (dayId: string, category?: string) => Activity[];
-  ensureDaysForTrip: (tripId: string, start: string, end: string) => Promise<void>;
-  updateDay: (d: Day) => Promise<void>;
+  syncDaysForTrip: (tripId: string, start: string, end: string) => Promise<void>; // sincronizza i giorni con l'intervallo attuale del viaggio
+  updateDay: (d: Day) => Promise<void>; // (addDay/deleteDay restano nello store: servono a P5 per la duplicazione)
   addDay: (d: Day) => Promise<void>; deleteDay: (id: string) => Promise<void>;
   addActivity: (a: Activity) => Promise<void>; updateActivity: (a: Activity) => Promise<void>; deleteActivity: (id: string) => Promise<void>;
   cycleStatus: (id: string) => Promise<void>;
@@ -44,29 +51,55 @@ export const useItineraryStore = create<State>((set, get) => ({
     get().activities.filter((a) => a.dayId === dayId && (category === 'all' || a.category === category))
       .sort((a, b) => a.time.localeCompare(b.time)),
 
-  ensureDaysForTrip: async (tripId, start, end) => {
-    const already = get().days.some((d) => d.tripId === tripId);
-    if (already || !start || !end) return;
+  // Sincronizza i giorni del viaggio con l'intervallo start–end attuale:
+  // - i giorni la cui data rientra ancora nell'intervallo vengono mantenuti così come sono
+  //   (stesso id, stesso titolo/note/attività: non si perde nulla di già compilato)
+  // - le date mancanti vengono create
+  // - i giorni la cui data non rientra più (viaggio accorciato) vengono rimossi insieme alle loro attività
+  // A differenza della vecchia ensureDaysForTrip, questa funzione NON si ferma solo perché
+  // esiste già un giorno: ricalcola sempre l'intero set rispetto all'intervallo corrente.
+  syncDaysForTrip: async (tripId, start, end) => {
+    if (!start || !end) return;
 
     const startDate = new Date(start);
     const endDate = new Date(end);
-    const generated: Day[] = [];
-    let order = 1;
+    const targetKeys: string[] = [];
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      generated.push({
-        id: makeId(),
-        tripId,
-        title: '',
-        date: d.toISOString(),
-        place: '',
-        order: order++,
-        notes: '',
-      });
+      targetKeys.push(dateKey(d.toISOString()));
     }
-    if (generated.length === 0) return;
-    const next = [...get().days, ...generated];
-    set({ days: next });
-    await saveJSON(DAYS, next);
+    if (targetKeys.length === 0) return;
+
+    const existing = get().days.filter((d) => d.tripId === tripId);
+    const existingByKey = new Map<string, Day>();
+    for (const d of existing) {
+      const key = dateKey(d.date);
+      if (!existingByKey.has(key)) existingByKey.set(key, d); // ignora eventuali doppioni sulla stessa data
+    }
+
+    const nextForTrip: Day[] = targetKeys.map((key, i) => {
+      const found = existingByKey.get(key);
+      if (found) return { ...found, order: i + 1 };
+      return { id: makeId(), tripId, title: '', date: key, place: '', order: i + 1, notes: '' };
+    });
+
+    const keptIds = new Set(nextForTrip.map((d) => d.id));
+    const removedIds = existing.filter((d) => !keptIds.has(d.id)).map((d) => d.id);
+
+    // se non è cambiato nulla, evitiamo scritture inutili su storage
+    const sameAsBefore = removedIds.length === 0 &&
+      nextForTrip.every((d) => existingByKey.get(dateKey(d.date))?.id === d.id) &&
+      nextForTrip.length === existing.length;
+    if (sameAsBefore) return;
+
+    const otherDays = get().days.filter((d) => d.tripId !== tripId);
+    const nextDays = [...otherDays, ...nextForTrip];
+    const nextActivities = removedIds.length
+      ? get().activities.filter((a) => !removedIds.includes(a.dayId))
+      : get().activities;
+
+    set({ days: nextDays, activities: nextActivities });
+    await saveJSON(DAYS, nextDays);
+    if (removedIds.length) await saveJSON(ACTS, nextActivities);
   },
 
   addDay: async (d) => { const n = [...get().days, d]; set({ days: n }); await saveJSON(DAYS, n); },

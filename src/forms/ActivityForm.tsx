@@ -1,3 +1,4 @@
+// src/forms/ActivityForm.tsx
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -18,6 +19,8 @@ export function ActivityForm({ visible, onClose, dayId, existing }: Props) {
   const [category, setCategory] = useState('cultura');
   const [showPicker, setShowPicker] = useState(false);
 
+  // Ogni volta che il form si apre, ricarico i campi:
+  // se "existing" c'è, prendo i suoi valori; altrimenti parto da uno stato vuoto.
   useEffect(() => {
     if (!visible) return;
     setTitle(existing?.title ?? '');

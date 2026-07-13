@@ -12,6 +12,7 @@ export function DayForm({ visible, onClose, day }: Props) {
   const [title, setTitle] = useState(day?.title ?? '');
   const [place, setPlace] = useState(day?.place ?? '');
 
+  // Ricarica i campi ogni volta che cambia il giorno selezionato
   React.useEffect(() => {
     setTitle(day?.title ?? '');
     setPlace(day?.place ?? '');
