@@ -1,3 +1,4 @@
+// Assegna un colore (2 tonalità per il gradiente) in base alla lettera iniziale della destinazione.
 const PALETTES: [string, string][] = [
   ['#2C5A52', '#9CB7A8'], // A-E · verde
   ['#3C5A7A', '#A9BFD6'], // F-J · blu
