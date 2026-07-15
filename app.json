@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "travel-organizer",
-    "slug": "travel-organizer",
+    "name": "TripMate",
+    "slug": "TripMate",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icona.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
